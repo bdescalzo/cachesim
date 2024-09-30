@@ -13,6 +13,7 @@ int wordSize; // Tamaño de palabra
 int blockSize; // Tamaño de bloque
 int setSize; // Tamaño de conjunto
 int rewrite; // 0 = FIFO, 1 = LRU
+int ciclosUsados = 0;
 
 // OCUPADO (0/1) - DIRTY (0/1) - TAG - REEMP - BLOQUE
 int cache[8][5];
@@ -117,17 +118,17 @@ int getTag() {
 }
 
 // Calcula la dirección de MC en la que tenemos que leer o escribir.
-int findDirection() {
+int findAddress() {
+    cout << "### INTERPRETACIÓN DE LA DIRECCIÓN ###\n\n";
     int palabra_mp = direccion / wordSize;
     int bloque_mp = direccion / blockSize;
     int dir_salida = -1; // Dirección a devolver
 
-    cout << "- Dirección: " << direccion << endl;
-    cout << "- Palabra: " << palabra_mp << ". Bloque: " << bloque_mp << '\n';
+    cout << "- Dirección en MP: " << direccion << endl;
+    cout << "- Palabra en MP: " << palabra_mp << ".\n Bloque en MP: " << bloque_mp << '\n';
 
     // CASO 1: Correspondencia directa. Tenemos que calcular el bloque correspondiente al bloque de la dirección.
     if (setSize==1) {
-        cout << "Haii :3";
         dir_salida = bloque_mp % (8/setSize);
     }
 
@@ -171,9 +172,8 @@ int findDirection() {
         int cj_cache = bloque_mp % (8/setSize);
 
         // Buscamos el elemento en el conjunto
-        cout << "Conjunto " << cj_cache << '\n';
+        cout << "CORRESP. ASOCIATIVA POR CONJUNTOS: El bloque va al conjunto " << cj_cache << '\n';
         for (int j = cj_cache * setSize; j<cj_cache*setSize+setSize; j++) {
-            cout << j << endl;
             if (cache[j][2]==direccion) {
                 dir_salida = j;
                 break;
@@ -182,7 +182,6 @@ int findDirection() {
         if (dir_salida==-1){
             // Buscamos un hueco libre en el conjunto
             for (int j = cj_cache * setSize; j<cj_cache*setSize+setSize; j++) {
-                cout << j << endl;
                 if (cache[j][0]==0) {
                     dir_salida = j;
                     break;
@@ -208,13 +207,44 @@ int findDirection() {
 
 }
 
+// Vacía el bloque solicitado, añadiendo la cantidad correspondiente de ciclos
+void emptyBlock(int dir) {
+    cache[dir][2] = 0; // Eliminamos el tag
+    cache[dir][3] = 0; // Reseteamos su política de reemplazo 
+    cache[dir][4] = 0; // Le eliminamos su bloque actual
+
+    // Si hubiera información a escribir en MP, añadimos los ciclos correspondientes.
+    if (cache[dir][1] == 1) {
+        ciclosUsados += 21;
+        cout << "Se ha reescrito en MP (+21 ciclos).\n";
+    }
+    
+    cache[dir][1] = 0;
+    cache[dir][0] = 0; // Lo liberamos
+}
+
+// Imprime el estado actual de la memoria
+void printCache() {
+
+}
 void performRead() {
+    // Calculamos el tag, y la dirección de la que leer
     int tag = getTag();
 
     cout << "El tag de " << direccion << " es " << tag << '\n';
 
-    int dirObjetivo = findDirection();
+    int dirObjetivo = findAddress();
     cout << "Va en la " << dirObjetivo << '\n';
+
+    // Comprobamos si el tag coincide
+    if (tag==cache[dirObjetivo][2]) {
+        cout << "HIT!\n";
+    }
+    else {
+        cout << "Miss... toca escribir. :(\n";
+        // Vaciamos el espacio de la cache
+        emptyBlock(dirObjetivo);
+    }
 }
 
 int main() {
