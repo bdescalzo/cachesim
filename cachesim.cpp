@@ -116,10 +116,105 @@ int getTag() {
     }
 }
 
+// Calcula la dirección de MC en la que tenemos que leer o escribir.
+int findDirection() {
+    int palabra_mp = direccion / wordSize;
+    int bloque_mp = direccion / blockSize;
+    int dir_salida = -1; // Dirección a devolver
+
+    cout << "- Dirección: " << direccion << endl;
+    cout << "- Palabra: " << palabra_mp << ". Bloque: " << bloque_mp << '\n';
+
+    // CASO 1: Correspondencia directa. Tenemos que calcular el bloque correspondiente al bloque de la dirección.
+    if (setSize==1) {
+        cout << "Haii :3";
+        dir_salida = bloque_mp % (8/setSize);
+    }
+
+    // Caso 2: Totalmente asociativa. Tenemos que buscar si existe el elemento en el conjunto, si no el primer sitio libre y, de no haberlo, devolver el que corresponda según la política FIFO o LRU.
+    else if (setSize==8) {
+        // Primera pasada: Buscar el elemento.
+        for (int i = 0; i <=7; i+=blockSize/wordSize) {
+            if (cache[i][2]==direccion) {
+                dir_salida = i;
+                break;
+            }
+        }
+
+        if (dir_salida==-1) {
+            // Segunda pasada: Buscar un sitio libre.
+            for (int i = 0; i <=7; i+=blockSize/wordSize) {
+                if (cache[i][0]==0) {
+                    dir_salida = i;
+                    break;
+                }
+            }
+        }
+
+        // Tercera pasada: Ejecutar el protocolo de reemplazo. Basta con buscar el número de reemplazo más alto, pues en FIFO representa la vejez y en LRU el desuso.
+        if (dir_salida == -1) {
+            int element = 0;
+            int element_age = -1;
+            for (int i = 0; i <=7; i++) {
+                if (cache[i][3] > element_age) {
+                    element = i;
+                    element_age = cache[i][3];
+                }
+            }
+            dir_salida = element;
+        }
+    }
+
+    // Caso 3: Asociativa por conjuntos. Entramos al conjunto que nos corresponde, y repetimos los pasos de la totalmente asociativa.
+    else {
+        // Primero calculamos el conjunto en el que nos corresponde estar
+        int cj_cache = bloque_mp % (8/setSize);
+
+        // Buscamos el elemento en el conjunto
+        cout << "Conjunto " << cj_cache << '\n';
+        for (int j = cj_cache * setSize; j<cj_cache*setSize+setSize; j++) {
+            cout << j << endl;
+            if (cache[j][2]==direccion) {
+                dir_salida = j;
+                break;
+            }
+        }
+        if (dir_salida==-1){
+            // Buscamos un hueco libre en el conjunto
+            for (int j = cj_cache * setSize; j<cj_cache*setSize+setSize; j++) {
+                cout << j << endl;
+                if (cache[j][0]==0) {
+                    dir_salida = j;
+                    break;
+                }
+            }
+      }
+
+        // Ejecutamos el protocolo de reemplazo
+        if (dir_salida==-1) {
+            int element = 0;
+            int element_age = -1;
+            for (int j = cj_cache*setSize; j <cj_cache*setSize+setSize; j++) {
+                if (cache[j][3] > element_age) {
+                    element = j;
+                    element_age = cache[j][3];
+                }
+            }
+            dir_salida = element;
+        }
+    }
+    return dir_salida;
+
+
+}
+
 void performRead() {
     int tag = getTag();
 
     cout << "El tag de " << direccion << " es " << tag << '\n';
+
+    int dirObjetivo = findDirection();
+    cout << "Va en la " << dirObjetivo << '\n';
 }
 
 int main() {
