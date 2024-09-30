@@ -174,7 +174,7 @@ int findAddress() {
         // Buscamos el elemento en el conjunto
         cout << "CORRESP. ASOCIATIVA POR CONJUNTOS: El bloque va al conjunto " << cj_cache << '\n';
         for (int j = cj_cache * setSize; j<cj_cache*setSize+setSize; j++) {
-            if (cache[j][2]==direccion) {
+            if (cache[j][2]==getTag()) {
                 dir_salida = j;
                 break;
             }
@@ -218,15 +218,39 @@ void emptyBlock(int dir) {
         ciclosUsados += 21;
         cout << "Se ha reescrito en MP (+21 ciclos).\n";
     }
-    
+
     cache[dir][1] = 0;
     cache[dir][0] = 0; // Lo liberamos
 }
 
 // Imprime el estado actual de la memoria
 void printCache() {
-
+    cout << "ocup    dirt    tag    reem   bloq\n";
+    for (int i = 0; i < 8; i++) {
+        if (i % setSize==0)
+            cout << "-------------------\n";
+        for (int j = 0; j < 4; j++) {
+            cout << cache[i][j] << "       ";
+        }
+        if (cache[i][0]==0) {
+            cout << "-";
+        }
+        else {
+            cout << 'b' << cache[i][4];
+        }
+        cout << '\n';
+    }
 }
+
+// Trae la dirección actual a la cache
+void carryToCache(int dirObjetivo, int tag) {
+    int bloque = direccion / blockSize;
+    cache[dirObjetivo][0] = 1;
+    cache[dirObjetivo][2] = tag;
+    cache[dirObjetivo][3] = 0;
+    cache[dirObjetivo][4] = bloque;
+}
+
 void performRead() {
     // Calculamos el tag, y la dirección de la que leer
     int tag = getTag();
@@ -237,23 +261,38 @@ void performRead() {
     cout << "Va en la " << dirObjetivo << '\n';
 
     // Comprobamos si el tag coincide
-    if (tag==cache[dirObjetivo][2]) {
+    if (cache[dirObjetivo][0]==1 && tag==cache[dirObjetivo][2]) {
         cout << "HIT!\n";
+        ciclosUsados = 2;
     }
     else {
         cout << "Miss... toca escribir. :(\n";
         // Vaciamos el espacio de la cache
         emptyBlock(dirObjetivo);
+        ciclosUsados += 21 + (blockSize/wordSize);
+        carryToCache(dirObjetivo, tag);
     }
 }
 
 int main() {
+    cout << " $$$$$$\\   $$$$$$\\   $$$$$$\\  $$\\   $$\\ $$$$$$$$\\  $$$$$$\\  $$$$$$\\ $$\\      $$\\ " << '\n';
+cout << "$$  __$$\\ $$  __$$\\ $$  __$$\\ $$ |  $$ |$$  _____|$$  __$$\\ \\_$$  _|$$$\\    $$$ |" << '\n';
+cout << "$$ /  \\__|$$ /  $$ |$$ /  \\__|$$ |  $$ |$$ |      $$ /  \\__|  $$ |  $$$$\\  $$$$ |" << '\n';
+cout << "$$ |      $$$$$$$$ |$$ |      $$$$$$$$ |$$$$$\\    \\$$$$$$\\    $$ |  $$\\$$\\$$ $$ |" << '\n';
+cout << "$$ |      $$  __$$ |$$ |      $$  __$$ |$$  __|    \\____$$\\   $$ |  $$ \\$$$  $$ |" << '\n';
+cout << "$$ |  $$\\ $$ |  $$ |$$ |  $$\\ $$ |  $$ |$$ |      $$\\   $$ |  $$ |  $$ |\\$  /$$ |" << '\n';
+cout << "\\$$$$$$  |$$ |  $$ |\\$$$$$$  |$$ |  $$ |$$$$$$$$\\ \\$$$$$$  |$$$$$$\\ $$ | \\_/ $$ |" << '\n';
+cout << " \\______/ \\__|  \\__| \\______/ \\__|  \\__|\\________| \\______/ \\______|\\__|     \\__|" << '\n';
+cout << "\nProgramado por Beñat Descalzo Alcuaz. ASCII generado con ayuda de ascii.today.\n\n";
+
     // Ajustamos los valores iniciales del programa
     setCacheMatrix();
     setup();
 
     // Elección de operación
     while (true) {
+        ciclosUsados = 0;
+        printCache();
         chooseOp();
         if (op=='r') {
             performRead();
