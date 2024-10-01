@@ -84,20 +84,6 @@ void chooseOp() {
     }
 }
 
-// 
-// Comprueba si en la dirección actual se encuentra el dato en uso.
-bool checkTag(int word) {
-    int palabra_mp = word / wordSize;
-    int bloque_mp = palabra_mp / (blockSize/wordSize);
-
-    // CASO 1: Correspondencia directa. Tenemos que calcular el tag correspondiente al bloque de la dirección.
-    if (setSize==1) {
-        int tag = bloque_mp / (8/blockSize);
-        return cache[word][tag];
-    }
-
-}
-
 // Calcula el tag de la dirección, en función del tamaño de conjunto
 int getTag() {
     int bloque_mp = direccion / (blockSize);
@@ -228,7 +214,7 @@ void printCache() {
     cout << "ocup    dirt    tag    reem   bloq\n";
     for (int i = 0; i < 8; i++) {
         if (i % setSize==0)
-            cout << "-------------------\n";
+            cout << "-----------------------------------\n";
         for (int j = 0; j < 4; j++) {
             cout << cache[i][j] << "       ";
         }
@@ -251,6 +237,7 @@ void carryToCache(int dirObjetivo, int tag) {
     cache[dirObjetivo][4] = bloque;
 }
 
+// Ejecuta el algoritmo de lectura de una dirección
 void performRead() {
     // Calculamos el tag, y la dirección de la que leer
     int tag = getTag();
@@ -272,18 +259,73 @@ void performRead() {
         ciclosUsados += 21 + (blockSize/wordSize);
         carryToCache(dirObjetivo, tag);
     }
+
+        // Aplicamos la política de reemplazo
+        for (int i = 0; i < 8; i++) {
+            if (cache[i][0]==1) {
+                cache[i][3]++;
+
+            }
+        }
+
+        // La reseteamos en el bloque accedido para el caso de LRU
+        if (rewrite==1) {
+            cache[dirObjetivo][3]=0;
+        }
+}
+
+// Ejecuta el algoritmo de escritura a una dirección
+void performWrite() {
+    // Calculamos el tag, y la dirección de la que leer
+    int tag = getTag();
+
+    cout << "El tag de " << direccion << " es " << tag << '\n';
+
+    int dirObjetivo = findAddress();
+    cout << "Va en la " << dirObjetivo << '\n';
+
+    // Comprobamos si el tag coincide
+    if (cache[dirObjetivo][0]==1 && tag==cache[dirObjetivo][2]) {
+        cout << "HIT!\n";
+        ciclosUsados = 2;
+    }
+    else {
+        cout << "Miss... toca escribir. :(\n";
+        // Vaciamos el espacio de la cache
+        emptyBlock(dirObjetivo);
+        ciclosUsados += 21 + (blockSize/wordSize);
+        carryToCache(dirObjetivo, tag);
+    }
+
+        // Aplicamos la política de reemplazo
+        for (int i = 0; i < 8; i++) {
+            if (cache[i][0]==1) {
+
+                cache[i][3]++;
+ 
+
+            }
+        }
+
+        // La reseteamos en el bloque accedido para el caso de LRU
+        if (rewrite==1) {
+            cout << "hii\n";
+            cache[dirObjetivo][3]=0;
+        }
+        cache[dirObjetivo][1] = 1; // Marcamos el bit dirty tras la escritura
 }
 
 int main() {
+    cout << '\n';
     cout << " $$$$$$\\   $$$$$$\\   $$$$$$\\  $$\\   $$\\ $$$$$$$$\\  $$$$$$\\  $$$$$$\\ $$\\      $$\\ " << '\n';
-cout << "$$  __$$\\ $$  __$$\\ $$  __$$\\ $$ |  $$ |$$  _____|$$  __$$\\ \\_$$  _|$$$\\    $$$ |" << '\n';
-cout << "$$ /  \\__|$$ /  $$ |$$ /  \\__|$$ |  $$ |$$ |      $$ /  \\__|  $$ |  $$$$\\  $$$$ |" << '\n';
-cout << "$$ |      $$$$$$$$ |$$ |      $$$$$$$$ |$$$$$\\    \\$$$$$$\\    $$ |  $$\\$$\\$$ $$ |" << '\n';
-cout << "$$ |      $$  __$$ |$$ |      $$  __$$ |$$  __|    \\____$$\\   $$ |  $$ \\$$$  $$ |" << '\n';
-cout << "$$ |  $$\\ $$ |  $$ |$$ |  $$\\ $$ |  $$ |$$ |      $$\\   $$ |  $$ |  $$ |\\$  /$$ |" << '\n';
-cout << "\\$$$$$$  |$$ |  $$ |\\$$$$$$  |$$ |  $$ |$$$$$$$$\\ \\$$$$$$  |$$$$$$\\ $$ | \\_/ $$ |" << '\n';
-cout << " \\______/ \\__|  \\__| \\______/ \\__|  \\__|\\________| \\______/ \\______|\\__|     \\__|" << '\n';
-cout << "\nProgramado por Beñat Descalzo Alcuaz. ASCII generado con ayuda de ascii.today.\n\n";
+    cout << "$$  __$$\\ $$  __$$\\ $$  __$$\\ $$ |  $$ |$$  _____|$$  __$$\\ \\_$$  _|$$$\\    $$$ |" << '\n';
+    cout << "$$ /  \\__|$$ /  $$ |$$ /  \\__|$$ |  $$ |$$ |      $$ /  \\__|  $$ |  $$$$\\  $$$$ |" << '\n';
+    cout << "$$ |      $$$$$$$$ |$$ |      $$$$$$$$ |$$$$$\\    \\$$$$$$\\    $$ |  $$\\$$\\$$ $$ |" << '\n';
+    cout << "$$ |      $$  __$$ |$$ |      $$  __$$ |$$  __|    \\____$$\\   $$ |  $$ \\$$$  $$ |" << '\n';
+    cout << "$$ |  $$\\ $$ |  $$ |$$ |  $$\\ $$ |  $$ |$$ |      $$\\   $$ |  $$ |  $$ |\\$  /$$ |" << '\n';
+    cout << "\\$$$$$$  |$$ |  $$ |\\$$$$$$  |$$ |  $$ |$$$$$$$$\\ \\$$$$$$  |$$$$$$\\ $$ | \\_/ $$ |" << '\n';
+    cout << " \\______/ \\__|  \\__| \\______/ \\__|  \\__|\\________| \\______/ \\______|\\__|     \\__|" << '\n';
+    cout << "\nProgramado por Beñat Descalzo Alcuaz. ASCII generado con ayuda de ascii.today.\n\n";
 
     // Ajustamos los valores iniciales del programa
     setCacheMatrix();
@@ -297,5 +339,10 @@ cout << "\nProgramado por Beñat Descalzo Alcuaz. ASCII generado con ayuda de as
         if (op=='r') {
             performRead();
         }
+        else if (op=='w') {
+            performWrite();
+        }
+
+        cout << "Ciclos usados: " << ciclosUsados << '\n';
     }
 }
